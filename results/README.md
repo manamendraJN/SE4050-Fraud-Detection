@@ -17,5 +17,3 @@ results/
     model_comparison_table.csv
     comparison_charts.png
 ```
-
-Include: confusion matrices, ROC/PR curves, training/validation accuracy & loss plots, and a metrics summary (accuracy, precision, recall, F1, ROC-AUC) for each model.
