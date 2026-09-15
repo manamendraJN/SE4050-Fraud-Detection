@@ -28,13 +28,11 @@ Experimental Design as a controlled variable.
 
 ## 2. MLP Architecture — decisions and rationale
 
-```
-Dense(64, ReLU) → BatchNorm → Dropout(0.3) → Dense(32, ReLU) → Dropout(0.3) → Dense(1, Sigmoid)
-Optimizer: Adam, lr=0.001
-Loss: binary cross-entropy
-Class weights: sklearn compute_class_weight("balanced") — handles ~0.17% fraud imbalance
-Early stopping: monitor=val_auc, mode=max, patience=8, restore_best_weights=True
-```
+    Dense(64, ReLU) → BatchNorm → Dropout(0.3) → Dense(32, ReLU) → Dropout(0.3) → Dense(1, Sigmoid)
+    Optimizer: Adam, lr=0.001
+    Loss: binary cross-entropy
+    Class weights: sklearn compute_class_weight("balanced") — handles ~0.17% fraud imbalance
+    Early stopping: monitor=val_auc, mode=max, patience=8, restore_best_weights=True
 
 Things to justify specifically in the report rather than leaving generic:
 - Why 64→32 (capacity vs. overfitting risk on a fairly small effective
@@ -100,16 +98,14 @@ decision using the same data used to report final performance). Instead:
 select the threshold using the **validation set**, then apply that fixed
 threshold once to the test set and report those numbers as final.
 
-```python
-val_proba = model.predict(X_val).ravel()
-val_precisions, val_recalls, val_thresholds = precision_recall_curve(y_val, val_proba)
-val_f1 = 2 * (val_precisions * val_recalls) / (val_precisions + val_recalls + 1e-9)
-best_val_idx = np.argmax(val_f1)
-chosen_threshold = val_thresholds[best_val_idx]
+    val_proba = model.predict(X_val).ravel()
+    val_precisions, val_recalls, val_thresholds = precision_recall_curve(y_val, val_proba)
+    val_f1 = 2 * (val_precisions * val_recalls) / (val_precisions + val_recalls + 1e-9)
+    best_val_idx = np.argmax(val_f1)
+    chosen_threshold = val_thresholds[best_val_idx]
 
-y_pred_final = (y_proba >= chosen_threshold).astype(int)
-# report classification_report(y_test, y_pred_final, ...) using this fixed threshold
-```
+    y_pred_final = (y_proba >= chosen_threshold).astype(int)
+    # report classification_report(y_test, y_pred_final, ...) using this fixed threshold
 
 **Why this is good report material:** it's a specific, defensible insight
 that most groups working on this exact dataset likely won't catch or
@@ -118,9 +114,27 @@ Write it up as: what we observed → why it happens → what we changed → why
 that's more methodologically sound. This is exactly the kind of reasoning
 the Critical Analysis section (30% of grade) rewards.
 
-**Status:** validation-based threshold selection code written; final
-numbers from this approach not yet recorded — **update this section once
-run**.
+**Final results (validation-based threshold, run once, not re-tuned on test):**
+
+- Threshold selected from validation set: **0.9984**
+- Validation performance at this threshold: precision=0.8889, recall=0.7887, f1=0.8358
+- **Test performance at this fixed threshold** (final reported numbers):
+  - Fraud class: precision=0.81, recall=0.79, F1=0.80 (support=71)
+  - Confusion matrix: `[[42475, 13], [15, 56]]` — 56/71 frauds caught, 13 false positives out of 42,488 legitimate transactions
+  - ROC-AUC: 0.9649 (this run) — vs. 0.9685 in the original run; the small
+    shift between runs is expected floating-point/GPU non-determinism and
+    reinforces the point above: ROC-AUC is stable across runs, while
+    threshold-dependent metrics are more sensitive to it.
+
+**These are the headline numbers to use in the report** — precision and
+recall are reasonably balanced here, in contrast to both the threshold=0.5
+result (recall-heavy, precision collapsed to 0.04) and the test-tuned
+threshold=1.0 result (methodologically unsound, tuned on test data).
+Frame this in the report as: "we deliberately selected the operating
+threshold on the validation set and evaluated once on test, avoiding
+threshold tuning on the test set itself" — this is the version of the
+threshold analysis worth presenting as the model's real-world operating
+point.
 
 ---
 
