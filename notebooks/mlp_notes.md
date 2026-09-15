@@ -179,3 +179,33 @@ point.
   operating threshold rationale (§4).
 - **Critical Analysis & Discussion** — §4 is strong differentiator
   material; §5 is good Viva/engineering-depth material.
+
+
+## 8. MLP vs. Sequence-Based Models — Expected Differences (for Results & Model Comparison)
+
+The MLP treats each transaction as an independent, unordered feature vector
+as it has no concept of transaction order or temporal context beyond
+whatever the (already PCA-transformed) V1-V28 features and scaled Time
+happen to encode implicitly. This is a reasonable fit for this dataset
+since fraud here is framed as a per-transaction classification problem
+rather than a sequence-labeling one and it likely explains why a
+comparatively simple, fast-to-train MLP already reaches strong ROC-AUC
+(0.96+) as there may not be much sequential signal left to exploit once
+PCA has already decorrelated the original features.
+
+By contrast, LSTM and CNN-1D are built to exploit ordering and local
+temporal patterns for e.g. a customer's spending pattern shifting over a
+sequence of transactions, not just a single transaction's own values.
+Whether they meaningfully outperform the MLP will depend on:
+- Whether the team constructs actual per-customer transaction sequences
+  as input (this dataset has no customer ID, so this may not be feasible
+  without further preprocessing/assumptions)
+- Whether the anonymized/PCA'd nature of V1-V28 has already destroyed the
+  kind of raw temporal signal these architectures are designed to exploit
+
+**Prediction to test empirically once those models are done:** the MLP
+may prove competitive with or even outperform the sequence models on
+this particular dataset, precisely because the data isn't naturally
+sequential per-customer — which would itself be a valuable, specific
+point for Critical Analysis & Discussion rather than an assumption that
+"more complex model = better."
