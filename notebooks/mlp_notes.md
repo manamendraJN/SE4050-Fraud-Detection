@@ -18,7 +18,7 @@ than trying to reconstruct it later.
   across all three splits.
 - Scaled `Time` and `Amount_log` with `StandardScaler` fit **only on
   training data** (no leakage into val/test).
-- Split sizes: Train (198,608, 32), Val (42,559, 32), Test (42,559, 32).
+- Split sizes: Train (198,608, 30), Val (42,559, 30), Test (42,559, 30) — 30 input features (28 PCA components + scaled Time + log-transformed Amount; raw Amount is dropped). Confirmed from the model's first Dense layer (1,984 params = 30 x 64 + 64) and the notebook's printed shapes; an earlier "32" here was likely printed before the raw Amount column was dropped.
 
 **Why it matters for the report:** fair cross-model comparison depends on
 every teammate using these exact splits — worth stating explicitly in
@@ -45,7 +45,7 @@ Things to justify specifically in the report rather than leaving generic:
 
 ---
 
-## 3. Initial Training Results
+## 3. Initial Training Results (exploratory run — superseded by the frozen final run in section 4)
 
 From first full run (`02_mlp_model_colab.py`, standalone `!python` execution):
 
@@ -84,13 +84,24 @@ a threshold of exactly 1.0 is not a usable real-world decision boundary.
    not identical to, the original run's numbers.
 
 **Conclusion:** the exact "best" threshold is **not stable across
-identical re-runs** of the same trained model. This is not primarily a
-float-saturation artifact (the saturation cluster exists but isn't what's
-driving the instability) — it's a **sample-size effect**: the test set
-only contains **71 fraud cases**, so the F1-vs-threshold curve is being
-optimized over a very small, noisy set of positives. Small floating-point
-differences between runs (GPU non-determinism) are enough to shift which
-exact threshold value "wins" the argmax.
+different training runs**. Part of this is a genuine **sample-size
+effect**: the test set only contains **71 fraud cases**, so the
+F1-vs-threshold curve is being optimized over a very small, noisy set of
+positives, and moving even one prediction across the boundary visibly
+shifts the "best" threshold.
+
+**Correction:** an earlier version of these notes attributed the
+run-to-run drift to floating-point/GPU non-determinism in the *same*
+saved model. That was never actually verified. A more likely explanation,
+consistent with file timestamps, is that a "Run all" in Colab silently
+re-triggered the training cell and overwrote the saved model on Drive —
+so successive "reloads" were often not the same model at all, just
+successive retrains sharing the same architecture and seed. This doesn't
+change the core finding (threshold instability under a tiny positive
+class, and the risk of tuning that threshold on the test set), but it
+does mean the different threshold/ROC-AUC/PR-AUC values recorded across
+sessions reflect **different trained models**, not numerical noise in one
+model.
 
 **Methodological fix adopted:** stop selecting the operating threshold
 from the **test set** (this is a mild form of test-set leakage — tuning a
@@ -114,27 +125,44 @@ Write it up as: what we observed → why it happens → what we changed → why
 that's more methodologically sound. This is exactly the kind of reasoning
 the Critical Analysis section (30% of grade) rewards.
 
-**Final results (validation-based threshold, run once, not re-tuned on test):**
+**Sept 15 exploratory run (superseded — kept here for the record):**
 
-- Threshold selected from validation set: **0.9984**
+- Threshold selected from validation set: 0.9984
 - Validation performance at this threshold: precision=0.8889, recall=0.7887, f1=0.8358
-- **Test performance at this fixed threshold** (final reported numbers):
-  - Fraud class: precision=0.81, recall=0.79, F1=0.80 (support=71)
-  - Confusion matrix: `[[42475, 13], [15, 56]]` — 56/71 frauds caught, 13 false positives out of 42,488 legitimate transactions
-  - ROC-AUC: 0.9649 (this run) — vs. 0.9685 in the original run; the small
-    shift between runs is expected floating-point/GPU non-determinism and
-    reinforces the point above: ROC-AUC is stable across runs, while
-    threshold-dependent metrics are more sensitive to it.
+- Test performance at this threshold: precision=0.81, recall=0.79, F1=0.80 (support=71)
+- Confusion matrix: `[[42475, 13], [15, 56]]` — 56/71 frauds caught, 13 false positives
+- ROC-AUC: 0.9649
 
-**These are the headline numbers to use in the report** — precision and
-recall are reasonably balanced here, in contrast to both the threshold=0.5
-result (recall-heavy, precision collapsed to 0.04) and the test-tuned
-threshold=1.0 result (methodologically unsound, tuned on test data).
-Frame this in the report as: "we deliberately selected the operating
-threshold on the validation set and evaluated once on test, avoiding
-threshold tuning on the test set itself" — this is the version of the
-threshold analysis worth presenting as the model's real-world operating
-point.
+This run, the original run (0.9685 ROC-AUC / 0.7279 PR-AUC), and the
+from-scratch retrain that was briefly committed on `main` (0.9979
+threshold, 0.9595 ROC-AUC, 0.7488 PR-AUC) are three **different trained
+models**, not the same model measured three times. Across them, ROC-AUC
+has ranged 0.9563–0.9685 (about a 1-point spread) and PR-AUC
+0.7225–0.7488 (about a 3-point spread) — contrary to an earlier version
+of these notes, this is **not stable across reruns**. That spread is
+expected given how few fraud cases the test set has (71) and is itself
+worth a line in Critical Analysis: differences under about 5–10 points
+between runs or models are within noise at this sample size.
+
+**FINAL RUN — frozen model, source of truth for the report and `results/mlp/`:**
+
+- Threshold selected from validation set: **0.9996**
+- Test performance at this fixed threshold (final reported numbers):
+  - Fraud class: precision=0.8116, recall=0.7887, F1=0.80 (support=71)
+  - Confusion matrix: 56/71 frauds caught, 13 false positives, 15 missed
+  - ROC-AUC: **0.9563**
+  - PR-AUC: **0.7479**
+  - Accuracy: 0.999342
+
+**These are the headline numbers to use in the report.** Every
+exploratory retrain above (initial run, reload, Sept 15 model, and the
+from-scratch retrain that was briefly on `main`) is superseded by this
+single frozen run — the notebook, `results/mlp/`, and this notes file are
+now all consistent with it. Frame it in the report as: "we deliberately
+selected the operating threshold on the validation set and evaluated once
+on test, avoiding threshold tuning on the test set itself, and froze one
+trained model as the source of truth for all reported numbers after
+observing run-to-run drift across retrains."
 
 ---
 
