@@ -1,0 +1,33 @@
+{
+  "model": "MLP",
+  "owner": "Bowatte W.M.E (IT22001498)",
+  "random_seed": 42,
+  "input_dim": 30,
+  "architecture": [
+    "Dense(64, activation=relu)",
+    "BatchNormalization()",
+    "Dropout(0.3)",
+    "Dense(32, activation=relu)",
+    "Dropout(0.3)",
+    "Dense(1, activation=sigmoid)"
+  ],
+  "optimizer": "Adam",
+  "learning_rate": 0.001,
+  "loss": "binary_crossentropy",
+  "batch_size": 256,
+  "max_epochs": 50,
+  "early_stopping": {
+    "monitor": "val_auc",
+    "mode": "max",
+    "patience": 8,
+    "restore_best_weights": true
+  },
+  "class_weight": {
+    "0": 0.5008346908617742,
+    "1": 300.012084592145
+  },
+  "decision_threshold": 0.9996,
+  "trainable_parameters": 4225,
+  "non_trainable_parameters": 128,
+  "total_parameters": 4353
+}

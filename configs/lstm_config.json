@@ -1,0 +1,42 @@
+{
+  "model": "LSTM",
+  "owner": "Bandara R.M.D.N (IT22578150)",
+  "random_seed": 42,
+  "sequence_reshape": {
+    "timesteps": 6,
+    "features_per_step": 5,
+    "note": "Each 30-feature transaction vector is reshaped into (6 timesteps x 5 features): Time+V1-V4, V5-V9, V10-V14, V15-V19, V20-V24, V25-V28+Amount. This is an artificial sequence — the dataset has no genuine per-customer transaction ordering."
+  },
+  "architecture": [
+    "LSTM(64, return_sequences=True, kernel_regularizer=l2(1e-4), recurrent_regularizer=l2(1e-4))",
+    "BatchNormalization()",
+    "Dropout(0.3)",
+    "LSTM(32, kernel_regularizer=l2(1e-4), recurrent_regularizer=l2(1e-4))",
+    "BatchNormalization()",
+    "Dropout(0.3)",
+    "Dense(16, activation=relu, kernel_regularizer=l2(1e-4))",
+    "Dropout(0.2)",
+    "Dense(1, activation=sigmoid)"
+  ],
+  "optimizer": "Adam",
+  "loss": "binary_crossentropy",
+  "batch_size": 256,
+  "max_epochs": 100,
+  "early_stopping": {
+    "monitor": "val_auc",
+    "mode": "max",
+    "patience": 10,
+    "restore_best_weights": true
+  },
+  "lr_schedule": {
+    "type": "ReduceLROnPlateau",
+    "monitor": "val_loss",
+    "factor": 0.5,
+    "patience": 5,
+    "min_lr": 0.000001
+  },
+  "imbalance_handling": "SMOTE (imblearn.over_sampling.SMOTE, random_state=42) applied to the training split only",
+  "decision_threshold": 0.89,
+  "parameters": 31265,
+  "data_caveat": "IMPORTANT — not yet on the shared pipeline: this run's data-loading cell falls back to a synthetic dataset (28,492 rows, 492 synthetic 'fraud' cases) whenever creditcard.csv isn't found at runtime, instead of loading the shared data/processed/{train,val,test}.csv splits used by MLP, TabNet, and CNN-1D. It also uses SMOTE instead of the class-weighting approach the other three models share. Point the data-loading cell at the shared processed CSVs, remove the SMOTE step (or justify keeping it), and re-run before these hyperparameters/results are treated as directly comparable to the other three models (see report Section 7.3 and 7.6)."
+}
