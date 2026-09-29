@@ -1,0 +1,21 @@
+Group ID: SE4050_G39
+
+Name: Bowatte W.M.E
+Student ID: IT22001498
+Email: it22001498@my.sliit.lk
+Model: MLP (Multi-Layer Perceptron)
+
+Name: Manamendra J.N
+Student ID: IT22608772
+Email: it22608772@my.sliit.lk
+Model: TabNet
+
+Name: Bandara R.M.D.N
+Student ID: IT22578150
+Email: it22578150@my.sliit.lk
+Model: LSTM (Long Short-Term Memory)
+
+Name: De Silva M.H.S.A
+Student ID: IT21178290
+Email: it21178290@my.sliit.lk
+Model: CNN-1D (1D Convolutional Neural Network)
