@@ -1,0 +1,26 @@
+{
+  "model": "CNN-1D",
+  "owner": "De Silva M.H.S.A (IT21178290)",
+  "random_seed": 42,
+  "architecture": {
+    "input": "(batch, 1, 30) — 30-feature vector treated as a length-30 single-channel signal",
+    "channels": [32, 64, 128],
+    "kernel_size": 3,
+    "conv_blocks": "Conv1d -> BatchNorm1d -> ReLU, with MaxPool1d(2) after blocks 1 and 2",
+    "pooling": "concat(AdaptiveAvgPool1d(1), AdaptiveMaxPool1d(1)) -> 256",
+    "head": ["Linear(256, 64)", "ReLU", "Dropout(0.3)", "Linear(64, 1)"]
+  },
+  "loss": "BCEWithLogitsLoss",
+  "pos_weight": 5.0,
+  "optimizer": "Adam",
+  "learning_rate": 0.001,
+  "weight_decay": 0.00001,
+  "scheduler": { "type": "StepLR", "step_size": 15, "gamma": 0.9 },
+  "batch_size": 2048,
+  "max_epochs": 250,
+  "patience": 30,
+  "best_epoch": 13,
+  "decision_threshold": 0.845,
+  "trainable_parameters": 48001,
+  "notes": "pos_weight=5 deliberately matches TabNet's tuned {0:1,1:5} class weighting so the two models' imbalance handling is directly comparable (see report Section 7.6)."
+}
